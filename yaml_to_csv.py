@@ -8,7 +8,7 @@ ROOT_DIR = r"D:\yaml_data"
 # Dictionary to hold stock-wise data
 stock_dict = {}
 
-# Optional: keep track of skipped files
+#keep track of skipped files
 skipped_files = []
 
 
@@ -60,7 +60,7 @@ def process_yaml_file(file_path):
         if not raw_data:
             return  # Skip empty YAMLs
 
-        # --- Normalize the root structure ---
+        #Normalize the root structure 
         if isinstance(raw_data, dict):
             # Convert dict {date: {stocks}} → list of {date: {stocks}}
             date_entries = [{date: stocks} for date, stocks in raw_data.items()]
@@ -70,16 +70,16 @@ def process_yaml_file(file_path):
             skipped_files.append(file_path)
             return  # Skip unexpected structure
 
-        # --- Iterate over date entries ---
+        #Iterate over date entries
         for date_entry in date_entries:
             if not isinstance(date_entry, dict):
                 continue  # skip malformed entry
 
             for date_str, stocks in date_entry.items():
                 if not isinstance(stocks, dict):
-                    continue  # skip if stocks section not dict
+                    continue
 
-                # 'stocks' should look like {'TCS': {...}, 'INFY': {...}}
+               
                 for symbol, values in stocks.items():
                     if not isinstance(values, dict):
                         continue  # skip malformed stock record
@@ -108,11 +108,11 @@ def process_yaml_file(file_path):
 for folder in os.listdir(ROOT_DIR):
     folder_path = os.path.join(ROOT_DIR, folder)
 
-    # Process only directories (e.g., month folders)
+    # Process only directories (e.g.,month folders)
     if os.path.isdir(folder_path):
         for file in os.listdir(folder_path):
 
-            # Process only YAML/YML files
+            # Process only YAML files
             if file.endswith((".yaml", ".yml")):
                 file_path = os.path.join(folder_path, file)
 
