@@ -1,13 +1,12 @@
 import streamlit as st
 import pandas as pd
-# Import your database utility functions from the db.py file
 from db import read_from_db 
 import plotly.express as px
 
-# --- PAGE CONFIGURATION ---
+#PAGE CONFIGURATION 
 st.set_page_config(layout="wide", page_title="Data-Driven Stock Analysis")
 
-# --- DATA FETCHING (Using the utility function) ---
+#DATA FETCHING (Using the utility function)
 @st.cache_data
 def get_dashboard_data():
     """Fetches all necessary data from the database."""
@@ -35,7 +34,7 @@ if df_metrics is not None:
     
     st.title("Nifty 50 Performance Dashboard")
     
-    # --- VISUALIZATION 1: Top 10 Most Volatile Stocks ---
+    #VISUALIZATION 1: Top 10 Most Volatile Stocks
     st.header("Top 10 Most Volatile Stocks 📉")
     df_volatile = df_metrics.sort_values(by='volatility', ascending=False).head(10)
     
@@ -49,7 +48,7 @@ if df_metrics is not None:
     )
     st.plotly_chart(fig_volatility, use_container_width=True)
 
-    # --- VISUALIZATION 2: Average Sector Returns ---
+    #VISUALIZATION 2:Average Sector Returns
     st.header("Average Yearly Return by Sector 🏭")
     
     # Ensure sectors are sorted correctly for the visualization
@@ -61,17 +60,15 @@ if df_metrics is not None:
         y='avg_return',
         title='Average Sector Performance',
         color='avg_return',
-        # Use a green-to-red scale
         color_continuous_scale=['red', 'yellow', 'green']
     )
     st.plotly_chart(fig_sector, use_container_width=True)
 
-    # ----------------------------------------------------------------------
-    # --- MERGED CODE: VISUALIZATION 3: Top and Bottom 10 Performers ---
-    # ----------------------------------------------------------------------
+    #VISUALIZATION 3:Top and Bottom 10 Performers 
+   
     st.header("Top 10 Best & Worst Performing Stocks 🟢/🔴")
     
-    # --- Data Preparation for Rankings ---
+    #Data Preparation for Rankings
     # Sort for Top 10 (Best Performers)
     df_top_10 = df_metrics.sort_values(
         by='yearly_return', 
@@ -84,13 +81,12 @@ if df_metrics is not None:
         ascending=True
     ).head(10).reset_index(drop=True)
     
-    # --- Layout into two columns ---
+    #Layout into two columns 
     col1, col2 = st.columns(2)
     
     # Display Top 10
     with col1:
         st.subheader("Top 10 Best Performers")
-        # Format the return as a percentage for better readability
         display_top = df_top_10[['ticker', 'yearly_return', 'sector']].copy()
         display_top['yearly_return'] = (display_top['yearly_return'] * 100).round(2).astype(str) + '%'
         st.dataframe(display_top, use_container_width=True, hide_index=True)
