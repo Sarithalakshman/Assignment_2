@@ -28,7 +28,7 @@ for file in os.listdir(ROOT_DIR):
                 skipped_files[file] = f"Missing columns: {list(missing)}"
                 continue  # skip this file
 
-            # --- Ensure correct data types ---
+            # Ensure correct data types 
             df['date'] = pd.to_datetime(df['date'], errors='coerce')
             df = df.dropna(subset=['date'])  # drop only rows where date is invalid
 
@@ -44,8 +44,6 @@ for file in os.listdir(ROOT_DIR):
 
         except Exception as e:
             skipped_files[file] = f"Error: {e}"
-
-# --- Final Summary ---
 print(f"✅ Loaded {len(loaded_files)} CSVs successfully.")
 print(f"⚠️ Skipped {len(skipped_files)} CSVs.")
 
