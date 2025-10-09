@@ -1,19 +1,18 @@
 import pandas as pd
 import numpy as np
 import time
-from db import  save_to_db # IMPORTANT: Imports the saving function
+from db import  save_to_db #Imports the saving function
 
-# --- CONFIGURATION (Ensure Stocks.csv exists in the same directory) ---
+
 FILE_PATH = "Stocks.csv"
-# Tickers from your original analysis
 ANALYSIS_COLUMNS = ['ibm', 'aapl', 'msft', 'xrx', 'amzn', 'dell', 'googl', 'adbe']
-# ----------------------------------------------------------------------
 
-# ----------------------------------------------------------------------
-# STEP 1: LOAD AND CLEAN DATA 
-# ----------------------------------------------------------------------
+
+
+#LOAD AND CLEAN DATA 
+
 try:
-    # Reads the header from the second line (index 1)
+    # Reads the header
     df_stocks = pd.read_csv(FILE_PATH, header=1)
     df_stocks.columns = [col.lower() for col in df_stocks.columns]
     df_stocks['date'] = pd.to_datetime(df_stocks['date'])
@@ -24,13 +23,13 @@ except FileNotFoundError:
     print(f"❌ Error: {FILE_PATH} not found. Exiting script.")
     exit()
 
-# --- Prepare df_daily for Calculations (Ensures only price data remains) ---
+#Prepare df_daily for Calculations
 df_daily = df_daily[ANALYSIS_COLUMNS]
 
 
-# ----------------------------------------------------------------------
-# STEP 2: CALCULATE CORE METRICS (Volatility and Yearly Return)
-# ----------------------------------------------------------------------
+
+#CALCULATE CORE METRICS (Volatility and Yearly Return)
+
 stock_metrics_list = []
 
 for stock in ANALYSIS_COLUMNS:
@@ -55,32 +54,28 @@ for stock in ANALYSIS_COLUMNS:
 
 df_metrics_raw = pd.DataFrame(stock_metrics_list).dropna(subset=['yearly_return', 'volatility'])
 
-# ----------------------------------------------------------------------
-# STEP 3: SECTOR MAPPING AND AGGREGATION
-# ----------------------------------------------------------------------
 
-# Sector mapping based on your data
+#SECTOR MAPPING AND AGGREGATION
+# Sector mapping data
 sector_map = {
     'AAPL': 'IT', 'MSFT': 'IT', 'GOOGL': 'Communication Services', 
     'IBM': 'IT', 'XRX': 'IT', 'AMZN': 'Consumer Discretionary', 
     'DELL': 'IT', 'ADBE': 'IT'
 }
 
-# 1. Prepare df_metrics (Update sector column)
+#Prepare df_metrics (Update sector column)
 df_metrics_raw['sector'] = df_metrics_raw['ticker'].map(sector_map)
 df_metrics = df_metrics_raw[['ticker', 'volatility', 'yearly_return', 'sector']]
 
-# 2. Prepare df_sector (Aggregation)
+#Prepare df_sector (Aggregation)
 df_sector_summary = df_metrics.groupby('sector').agg(
     avg_return=('yearly_return', 'mean'),
     num_stocks=('ticker', 'count')
 ).reset_index()
 
+#CORRELATION MATRIX
 
-# ----------------------------------------------------------------------
-# STEP 4: CORRELATION MATRIX (New Logic to fill correlation_matrix)
-# ----------------------------------------------------------------------
-print("\n--- Calculating Correlation Matrix ---")
+print("\nCalculating Correlation Matrix")
 
 # Calculate daily returns for correlation
 df_returns = df_daily.pct_change().dropna()
@@ -89,36 +84,33 @@ df_returns = df_daily.pct_change().dropna()
 correlation_matrix = df_returns.corr()
 
 # Convert matrix to a long format suitable for SQL table and Heatmap visual
-# We're melting the matrix to have a 'stock_a', 'stock_b', 'correlation' format
 df_correlation_long = correlation_matrix.stack().reset_index()
 df_correlation_long.columns = ['stock_a', 'stock_b', 'correlation']
 
 # Remove self-correlation (correlation == 1) for cleaner data
 df_correlation = df_correlation_long[df_correlation_long['stock_a'] != df_correlation_long['stock_b']].copy()
-print(f"DEBUG: df_correlation size: {len(df_correlation)} rows") # <-- DEBUG CHECK
-# ----------------------------------------------------------------------
+print(f"DEBUG: df_correlation size: {len(df_correlation)} rows") #DEBUG CHECK
 
 
-# ----------------------------------------------------------------------
-# STEP 5: MONTHLY & RAW DATA PREP (New Logic to fill stocks_raw & monthly_performance)
-# ----------------------------------------------------------------------
-print("--- Preparing Monthly and Raw Data Tables ---")
 
-# 1. Prepare df_stocks_raw (Tidy format for raw data)
-# We select only the original analysis columns and the date
-# NOTE: df_stocks is the original DataFrame with the 'date' column
+
+#MONTHLY & RAW DATA PREP (New Logic to fill stocks_raw & monthly_performance)
+print("Preparing Monthly and Raw Data Tables")
+
+#Prepare df_stocks_raw
+#df_stocks is the original DataFrame with the 'date' column
 df_stocks_raw = df_stocks[['date'] + ANALYSIS_COLUMNS].copy()
 # Melt the DataFrame to long format (date, ticker, price)
 df_stocks_raw = df_stocks_raw.melt(
     id_vars=['date'], 
     value_vars=ANALYSIS_COLUMNS, 
     var_name='ticker', 
-    value_name='close' # We assume the values are close prices
+    value_name='close' #assume the values are close prices
 ).dropna()
 
 # Convert ticker to uppercase for consistency
 df_stocks_raw['ticker'] = df_stocks_raw['ticker'].str.upper()
-print(f"DEBUG: df_stocks_raw size: {len(df_stocks_raw)} rows") # <-- DEBUG CHECK
+print(f"DEBUG: df_stocks_raw size: {len(df_stocks_raw)} rows") #DEBUG CHECK
 
 
 # 2. Prepare df_monthly_performance (Uses the prepared daily returns)
@@ -144,25 +136,23 @@ df_monthly_performance['monthly_rank'] = df_monthly_performance.groupby('month')
 df_monthly_performance = df_monthly_performance[['month', 'ticker', 'monthly_return', 'category', 'monthly_rank']]
 
 
-# ----------------------------------------------------------------------
-# STEP 6: DATABASE SAVING (Final Upload)
-# ----------------------------------------------------------------------
+#DATABASE SAVING 
 
 print("\n--- Saving All Data to MySQL Database ---")
 
-# Save the detailed stock metrics (required for Volatility chart)
+# Save the detailed stock metrics 
 save_to_db(df_metrics, 'stocks_metrics', if_exists='replace')
 
-# Save the sector summary (required for Sector chart)
+# Save the sector summary 
 save_to_db(df_sector_summary, 'sector_summary', if_exists='replace')
 
-# Save the CORRELATION MATRIX (New upload)
+# Save the CORRELATION MATRIX
 save_to_db(df_correlation, 'correlation_matrix', if_exists='replace')
 
-# Save the MONTHLY PERFORMANCE (New upload)
+# Save the MONTHLY PERFORMANCE
 save_to_db(df_monthly_performance, 'monthly_performance', if_exists='replace')
 
-# Save the RAW STOCK DATA (New upload)
+# Save the RAW STOCK DATA 
 save_to_db(df_stocks_raw, 'stocks_raw', if_exists='replace')
 
 
