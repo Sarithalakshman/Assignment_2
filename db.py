@@ -1,17 +1,15 @@
 import pandas as pd
-# IMPORTANT: We need to import 'text' for robust SQL query handling
+#to import 'text' for robust SQL query handling
 from sqlalchemy import create_engine, text
 from typing import Optional
 
-# --- IMPORTANT: Configure your database connection here ---
-# Corrected: Explicit IP, Port, and Lowercase DB Name
-DB_URL = "mysql+pymysql://root:srihari@127.0.0.1:3306/dd_stockanalysis" 
+
+DB_URL = "mysql+pymysql://root:srihari@localhost:3306/dd_stockanalysis" 
 
 def connect_db():
     
     """Create SQLAlchemy engine."""
     try:
-        # NOTE: Connection error will occur here if credentials or server are wrong
         engine = create_engine(DB_URL)
         return engine
     except Exception as e:
@@ -27,16 +25,16 @@ def save_to_db(df: pd.DataFrame, table_name: str, if_exists: str = 'replace'):
     engine = connect_db()
     
     try:
-        # 1. Open a connection and start a transaction block. 
+        #  Open a connection and start a transaction block. 
         # The 'with engine.begin() as conn:' block automatically manages commit/rollback.
         with engine.begin() as conn: 
             
             print(f"Loading data into table: {table_name}...")
             
-            # 2. Perform the SQL insertion within the transaction
+            #Perform the SQL insertion within the transaction
             df.to_sql(
                 table_name, 
-                con=conn, # Use the connection object from the transaction
+                con=conn, #the connection object from the transaction
                 if_exists=if_exists, 
                 index=False, 
                 chunksize=1000
@@ -61,16 +59,14 @@ def read_from_db(query: str) -> Optional[pd.DataFrame]:
         print(f"✅ Successfully read {len(df)} records.")
         return df
     except Exception as e:
-        # Catch connection or SQL errors and return None
+    
         print(f"❌ Error reading data from database: {e}")
         return None
 
-# -----------------------------------------------------------------
-# --- TEST BLOCK: Runs when you execute 'python db.py' directly ---
-# -----------------------------------------------------------------
+
 if __name__ == "__main__":
     """This block runs ONLY when you execute 'python db.py' directly."""
-    print("\n--- Running Database Connection Test ---")
+    print("\nRunning Database Connection Test")
     
     try:
         # Attempt to create the engine
@@ -83,7 +79,6 @@ if __name__ == "__main__":
             
             # Test reading data from a required table (e.g., stocks_metrics)
             test_query = "SELECT ticker, yearly_return FROM stocks_metrics LIMIT 1"
-            # Must use text() here as well
             df_test = pd.read_sql(text(test_query), con=connection)
             
             if not df_test.empty:
@@ -94,4 +89,4 @@ if __name__ == "__main__":
     except Exception as e:
         print("\n❌ FINAL TEST FAILED. Fix the DB_URL or check your MySQL server.")
     finally:
-        print("--- Test Complete ---")
+        print("Test Complete")
